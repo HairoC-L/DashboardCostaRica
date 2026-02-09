@@ -4,7 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stage, Environment, useGLTF, Center, Html } from "@react-three/drei";
 import { Mesh } from "three";
 
-import { FirebaseService, MapPin } from "@/services/firebase-service";
+import { ApiService, MapPin } from "@/services/api-service";
 
 function Model() {
     // Load the GLTF/GLB model. Replace '/Cottage_FREE.glb' with your file path.
@@ -30,7 +30,7 @@ export function InteractiveMap() {
     React.useEffect(() => {
         const fetchPins = async () => {
             try {
-                const data = await FirebaseService.getMapPins();
+                const data = await ApiService.getMapPins();
                 setPins(data);
             } catch (error) {
                 console.error("Failed to load map pins:", error);

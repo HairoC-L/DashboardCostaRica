@@ -1,13 +1,11 @@
+
 "use client";
 import { EmailIcon, PasswordIcon } from "@/assets/icons";
 import Link from "next/link";
 import React, { useState } from "react";
 import InputGroup from "../FormElements/InputGroup";
 import { Checkbox } from "../FormElements/checkbox";
-import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { FirebaseService } from "@/services/firebase-service";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SigninWithPassword() {
   const [data, setData] = useState({
@@ -16,8 +14,8 @@ export default function SigninWithPassword() {
     remember: false,
   });
 
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setData({
@@ -26,45 +24,15 @@ export default function SigninWithPassword() {
     });
   };
 
-  const handleDataSync = async (user: any) => {
-    // Sync user to Firestore to ensure role and data exists
-    await FirebaseService.syncUser({
-      uid: user.uid,
-      email: user.email || "",
-      displayName: user.displayName || ""
-    });
-  }
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
-    const email = data.email === "admin@admin" ? "admin@admin.com" : data.email;
-
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, data.password);
-      await handleDataSync(userCredential.user);
-      router.push("/dashboard");
+      await login(data.email, data.password);
     } catch (error: any) {
-      // Auto-register logic mostly for admin
-      if (email === "admin@admin.com") {
-        try {
-          const newUserCred = await createUserWithEmailAndPassword(auth, email, data.password);
-          await handleDataSync(newUserCred.user);
-          router.push("/dashboard");
-          return;
-        } catch (createError) {
-          console.error("Auto-create failed", createError);
-        }
-      }
-
       console.error("Login failed:", error);
-      if (error.code === 'auth/operation-not-allowed') {
-        alert("Error de Configuración: El método de inicio de sesión (Email/Password) no está habilitado en tu proyecto de Firebase.\n\nVe a Firebase Console -> Authentication -> Sign-in method y habilita 'Email/Password'.");
-      } else {
-        alert("Error al iniciar sesión: " + (error.message || "Credenciales incorrectas"));
-      }
-    } finally {
+      alert("Error al iniciar sesión: " + (error.message || "Credenciales incorrectas"));
       setLoading(false);
     }
   };
@@ -72,28 +40,22 @@ export default function SigninWithPassword() {
   const handleDirectAdminLogin = async () => {
     setLoading(true);
     const adminEmail = "admin@admin.com";
-    // Use env var or fallback. "password123" is a common dev default, or use a complex one if needed.
-    // Since user asked for "no request password", we just use a known one.
     const adminPass = process.env.NEXT_PUBLIC_DEMO_USER_PASS || "admin123456";
 
     try {
-      // Try login
-      const userCredential = await signInWithEmailAndPassword(auth, adminEmail, adminPass);
-      await handleDataSync(userCredential.user);
-      router.push("/dashboard");
-    } catch (error: any) {
-      // If fail, maybe user doesn't exist? Try create
+      // Attempt login
+      await login(adminEmail, adminPass);
+    } catch (error) {
+      // If login fails, try to seed the admin user
       try {
-        const newUserCred = await createUserWithEmailAndPassword(auth, adminEmail, adminPass);
-        // Ensure it's admin role (syncUser handles this based on email)
-        await handleDataSync(newUserCred.user);
-        router.push("/dashboard");
-      } catch (createError: any) {
-        console.error("Direct admin login failed:", error, createError);
-        alert("No se pudo acceder como administrador automáticamente. Por favor verifica los logs.");
+        await fetch('/api/seed');
+        // Retry login
+        await login(adminEmail, adminPass);
+      } catch (seedError) {
+        console.error("Direct admin login / seed failed:", error, seedError);
+        alert("No se pudo acceder como administrador. Verifica la consola.");
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
     }
   };
 

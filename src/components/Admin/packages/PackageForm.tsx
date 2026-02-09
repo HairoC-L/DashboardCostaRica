@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Package, FirebaseService, DailyItinerary } from "@/services/firebase-service";
+import { Package, ApiService, DailyItinerary } from "@/services/api-service";
 import Image from "next/image";
 import GalleryUploader from "@/components/Admin/GalleryUploader";
 
@@ -68,12 +68,8 @@ export default function PackageForm({ initialData, onSubmit, isSubmitting = fals
             const slug = "pkg-" + (initialData?.id || Date.now()); // Simple slug for folder organization
 
             const uploadPromises = files.map(async (file) => {
-                // Use existing API route for consistency if available, otherwise FirebaseService
-                // The TourForm uses /api/upload. Let's see if we can use it or stick to FirebaseService to be safe.
-                // PackageForm used FirebaseService.uploadImage before. Let's stick to that but make it cleaner.
-                // Actually, let's use the API if possible for consistency, but FirebaseService is imported.
-                // FirebaseService.uploadImage works.
-                return FirebaseService.uploadImage(file, `packages/${slug}/${file.name}`);
+                // Use ApiService
+                return ApiService.uploadImage(file, "packages", slug);
             });
 
             const urls = await Promise.all(uploadPromises);

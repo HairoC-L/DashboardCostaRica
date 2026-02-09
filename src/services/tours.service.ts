@@ -1,59 +1,46 @@
-import { db } from "@/lib/firebase";
-import {
-    collection,
-    getDocs,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    doc
-} from "firebase/firestore";
 import { Tour, Place } from "@/types";
+import { PlacesService } from "./places.service";
 
-const TOURS_COLLECTION = "tours";
-const PLACES_COLLECTION = "places";
-
-const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 30000): Promise<T> => {
-    return Promise.race([
-        promise,
-        new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error("Operation timed out")), timeoutMs)
-        ),
-    ]);
-};
+const API_URL = "/api/tours";
 
 export const ToursService = {
     getTours: async (): Promise<Tour[]> => {
-        return withTimeout((async () => {
-            const [toursSnap, placesSnap] = await Promise.all([
-                getDocs(collection(db, TOURS_COLLECTION)),
-                getDocs(collection(db, PLACES_COLLECTION))
-            ]);
+        const [toursRes, places] = await Promise.all([
+            fetch(API_URL),
+            PlacesService.getPlaces(),
+        ]);
 
-            const places = placesSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Place));
-            const tours = toursSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Tour));
+        if (!toursRes.ok) throw new Error("Failed to fetch tours");
 
-            return tours.map((tour: any) => ({
-                ...tour,
-                places: places.filter((p: any) => tour.placeIds?.includes(p.id))
-            }));
-        })());
+        const tours: Tour[] = await toursRes.json();
+
+        return tours.map((tour) => ({
+            ...tour,
+            places: places.filter((p) => tour.placeIds?.includes(p.id)),
+        }));
     },
     addTour: async (tour: Omit<Tour, "id">) => {
-        return withTimeout((async () => {
-            const docRef = await addDoc(collection(db, TOURS_COLLECTION), tour);
-            return { id: docRef.id, ...tour };
-        })());
+        const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(tour),
+        });
+        if (!res.ok) throw new Error("Failed to create tour");
+        return res.json();
     },
     updateTour: async (id: string, updates: Partial<Tour>) => {
-        return withTimeout((async () => {
-            const docRef = doc(db, TOURS_COLLECTION, id);
-            await updateDoc(docRef, updates);
-            return { id, ...updates };
-        })());
+        const res = await fetch(`${API_URL}/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates),
+        });
+        if (!res.ok) throw new Error("Failed to update tour");
+        return res.json();
     },
     deleteTour: async (id: string) => {
-        return withTimeout((async () => {
-            await deleteDoc(doc(db, TOURS_COLLECTION, id));
-        })());
+        const res = await fetch(`${API_URL}/${id}`, {
+            method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Failed to delete tour");
     },
 };

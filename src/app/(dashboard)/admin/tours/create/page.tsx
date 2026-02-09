@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FirebaseService, Tour, Place } from "@/services/firebase-service";
+import { ApiService, Tour, Place } from "@/services/api-service";
 import TourForm from "@/components/Admin/tours/TourForm";
 import Link from "next/link";
 
@@ -13,7 +13,7 @@ export default function CreateTourPage() {
 
     useEffect(() => {
         const fetchPlaces = async () => {
-            const places = await FirebaseService.getPlaces();
+            const places = await ApiService.getPlaces();
             setAvailablePlaces(places);
         };
         fetchPlaces();
@@ -22,7 +22,7 @@ export default function CreateTourPage() {
     const handleSubmit = async (data: Partial<Tour>) => {
         try {
             setIsSubmitting(true);
-            await FirebaseService.addTour(data as Omit<Tour, "id">);
+            await ApiService.addTour(data as Omit<Tour, "id">);
             router.push("/admin/tours");
             router.refresh();
         } catch (error) {

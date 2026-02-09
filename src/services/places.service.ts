@@ -1,48 +1,35 @@
-import { db } from "@/lib/firebase";
-import {
-    collection,
-    getDocs,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    doc
-} from "firebase/firestore";
 import { Place } from "@/types";
 
-const PLACES_COLLECTION = "places";
-
-const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 30000): Promise<T> => {
-    return Promise.race([
-        promise,
-        new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error("Operation timed out")), timeoutMs)
-        ),
-    ]);
-};
+const API_URL = "/api/places";
 
 export const PlacesService = {
     getPlaces: async (): Promise<Place[]> => {
-        return withTimeout((async () => {
-            const snapshot = await getDocs(collection(db, PLACES_COLLECTION));
-            return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Place));
-        })());
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error("Failed to fetch places");
+        return res.json();
     },
     addPlace: async (place: Omit<Place, "id">) => {
-        return withTimeout((async () => {
-            const docRef = await addDoc(collection(db, PLACES_COLLECTION), place);
-            return { id: docRef.id, ...place };
-        })());
+        const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(place),
+        });
+        if (!res.ok) throw new Error("Failed to create place");
+        return res.json();
     },
     updatePlace: async (id: string, updates: Partial<Place>) => {
-        return withTimeout((async () => {
-            const docRef = doc(db, PLACES_COLLECTION, id);
-            await updateDoc(docRef, updates);
-            return { id, ...updates };
-        })());
+        const res = await fetch(`${API_URL}/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates),
+        });
+        if (!res.ok) throw new Error("Failed to update place");
+        return res.json();
     },
     deletePlace: async (id: string) => {
-        return withTimeout((async () => {
-            await deleteDoc(doc(db, PLACES_COLLECTION, id));
-        })());
+        const res = await fetch(`${API_URL}/${id}`, {
+            method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Failed to delete place");
     },
 };

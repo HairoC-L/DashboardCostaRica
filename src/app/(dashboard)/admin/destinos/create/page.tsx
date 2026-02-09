@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FirebaseService, Place } from "@/services/firebase-service";
+import { ApiService, Place } from "@/services/api-service";
 import DestinationForm from "@/components/Admin/destinos/DestinationForm";
 import Link from "next/link";
 
@@ -13,7 +13,7 @@ export default function CreateDestinationPage() {
     const handleSubmit = async (data: Partial<Place>) => {
         try {
             setIsSubmitting(true);
-            await FirebaseService.addPlace(data as Omit<Place, "id">);
+            await ApiService.addPlace(data as Omit<Place, "id">);
             router.push("/admin/destinos");
             router.refresh();
         } catch (error) {

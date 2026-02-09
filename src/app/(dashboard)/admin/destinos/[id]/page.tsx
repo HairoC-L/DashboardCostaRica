@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Place, FirebaseService } from "@/services/firebase-service";
+import { Place, ApiService } from "@/services/api-service";
 import Link from "next/link";
 import Image from "next/image";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import EditableSection from "@/components/Admin/ui/EditableSection";
 import LocationPickerModal from "@/components/Admin/LocationPickerModal";
 import GalleryUploader from "@/components/Admin/GalleryUploader";
@@ -33,19 +31,12 @@ export default function DestinationDetailsPage() {
         const fetchPlace = async () => {
             if (!id) return;
             try {
-                const docRef = doc(db, "places", id);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    const data = { id: docSnap.id, ...docSnap.data() } as Place;
-                    setPlace(data);
-                    setFormData(data);
-                } else {
-                    console.error("No such place!");
-                    router.push("/admin/destinos");
-                }
+                const data = await ApiService.getPlace(id);
+                setPlace(data);
+                setFormData(data);
             } catch (error) {
                 console.error("Error fetching place:", error);
+                router.push("/admin/destinos");
             } finally {
                 setLoading(false);
             }
@@ -56,7 +47,7 @@ export default function DestinationDetailsPage() {
 
     const handleDelete = async () => {
         if (confirm("¿Estás seguro de eliminar este destino?")) {
-            await FirebaseService.deletePlace(id);
+            await ApiService.deletePlace(id);
             router.push("/admin/destinos");
         }
     };
@@ -71,7 +62,7 @@ export default function DestinationDetailsPage() {
     const handleSave = async (section: string) => {
         try {
             setIsSaving(true);
-            await FirebaseService.updatePlace(id, formData);
+            await ApiService.updatePlace(id, formData);
             setPlace(prev => ({ ...prev, ...formData } as Place));
             setEditMode(prev => ({ ...prev, [section]: false }));
         } catch (error) {
@@ -221,14 +212,14 @@ export default function DestinationDetailsPage() {
                                 <div>
                                     <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">Categoría</label>
                                     <select
-                                        value={formData.category || ""}
-                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                        value={formData.category || "playas"}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
                                         className="w-full rounded border border-stroke bg-transparent px-3 py-2 text-dark outline-none dark:border-dark-3 dark:text-white focus:border-primary"
                                     >
-                                        <option value="playa">Playa</option>
-                                        <option value="montaña">Montaña</option>
-                                        <option value="ciudad">Ciudad</option>
-                                        <option value="histórico">Histórico</option>
+                                        <option value="playas">Playas</option>
+                                        <option value="volcanes">Volcanes</option>
+                                        <option value="parques">Parques Nacionales</option>
+                                        <option value="rutas">Rutas</option>
                                         <option value="otro">Otro</option>
                                     </select>
                                 </div>

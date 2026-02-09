@@ -1,14 +1,12 @@
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import { auth } from "@/lib/firebase";
-import { FirebaseService } from "@/services/firebase-service";
-import { updatePassword, updateProfile, User } from "firebase/auth";
+import { useAuth } from "@/contexts/AuthContext";
+import { ApiService } from "@/services/api-service";
 import { useEffect, useState } from "react";
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
 
   // Form States
   const [displayName, setDisplayName] = useState("");
@@ -20,15 +18,10 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        setDisplayName(currentUser.displayName || "");
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+    if (user) {
+      setDisplayName(user.displayName || "");
+    }
+  }, [user]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +29,12 @@ export default function ProfilePage() {
     setIsSaving(true);
     try {
       if (user) {
-        await updateProfile(user, {
+        // Use syncUser or a new updateUser method. syncUser fits the "update info" pattern for now.
+        // Or better: ApiService.updateUser if available. ApiService has syncUser which calls PUT /api/users/[uid]
+        // properly.
+        await ApiService.syncUser({
+          uid: user.uid,
+          email: user.email,
           displayName: displayName
         });
         setMessage({ type: 'success', text: 'Perfil actualizado correctamente.' });
@@ -50,6 +48,10 @@ export default function ProfilePage() {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    alert("El cambio de contraseña no está disponible en esta versión local aún.");
+    return;
+    /* 
+    // Implementation pending API support
     setMessage(null);
 
     if (newPassword !== confirmPassword) {
@@ -64,22 +66,16 @@ export default function ProfilePage() {
 
     setIsSaving(true);
     try {
-      if (user) {
-        await updatePassword(user, newPassword);
+        // await ApiService.changePassword(user.uid, newPassword); 
         setMessage({ type: 'success', text: 'Contraseña actualizada correctamente.' });
         setNewPassword("");
         setConfirmPassword("");
-      }
     } catch (error: any) {
-      console.error(error);
-      if (error.code === 'auth/requires-recent-login') {
-        setMessage({ type: 'error', text: 'Por seguridad, debes volver a iniciar sesión para cambiar la contraseña.' });
-      } else {
         setMessage({ type: 'error', text: error.message || 'Error al actualizar contraseña.' });
-      }
     } finally {
       setIsSaving(false);
     }
+    */
   };
 
   if (loading) return <div className="p-10 text-center">Cargando...</div>;
@@ -212,7 +208,7 @@ export default function ProfilePage() {
             type="button"
             onClick={async () => {
               if (user && confirm("¿Asignar rol de Administrador a tu usuario actual?")) {
-                await FirebaseService.updateUserRole(user.uid, "admin");
+                await ApiService.updateUserRole(user.uid, "admin");
                 alert("¡Ahora eres Administrador! La página se recargará.");
                 window.location.reload();
               }

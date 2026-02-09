@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FirebaseService, Package } from "@/services/firebase-service";
+import { ApiService, Package } from "@/services/api-service";
 import PackageForm from "@/components/Admin/packages/PackageForm";
 import Link from "next/link";
 
@@ -13,7 +13,7 @@ export default function CreatePackagePage() {
     const handleSubmit = async (data: Omit<Package, "id">) => {
         try {
             setIsSubmitting(true);
-            await FirebaseService.addPackage(data);
+            await ApiService.addPackage(data);
             router.push("/admin/paquetes");
         } catch (error) {
             console.error("Error creating package:", error);

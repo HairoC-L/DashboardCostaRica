@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-import { Tour } from "@/services/firebase-service";
+import { Tour } from "@/services/api-service";
 
 dayjs.locale("es");
 

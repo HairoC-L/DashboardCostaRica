@@ -3,7 +3,7 @@ import React, { Suspense, useState, useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, useGLTF, Center, Html } from "@react-three/drei";
 import { Vector3, Box3, Raycaster } from "three";
-import { FirebaseService, MapPin } from "@/services/firebase-service";
+import { ApiService, MapPin } from "@/services/api-service";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import dynamic from "next/dynamic";
 
@@ -63,7 +63,7 @@ export default function AdminMap3DPage() {
 
     const loadPins = async () => {
         try {
-            const data = await FirebaseService.getMapPins();
+            const data = await ApiService.getMapPins();
             setPins(data);
         } catch (error) {
             console.error("Error loading pins:", error);
@@ -119,7 +119,7 @@ export default function AdminMap3DPage() {
 
         setLoading(true);
         try {
-            await FirebaseService.addMapPin({
+            await ApiService.addMapPin({
                 label: newPinName,
                 position: [selectedPoint.x, selectedPoint.y, selectedPoint.z]
             });
@@ -138,7 +138,7 @@ export default function AdminMap3DPage() {
         if (!confirm("¿Eliminar este pin?")) return;
         setLoading(true);
         try {
-            await FirebaseService.deleteMapPin(id);
+            await ApiService.deleteMapPin(id);
             await loadPins();
         } catch (error) {
             console.error("Error deleting pin:", error);

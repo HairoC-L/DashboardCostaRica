@@ -4,26 +4,25 @@ import React, { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Layouts/sidebar";
 import { Header } from "@/components/Layouts/header";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
+
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const [loading, setLoading] = useState(true);
+    const { user, loading } = useAuth();
+    // const [loading, setLoading] = useState(true); // Handled by context
     const router = useRouter();
 
+
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (!user) {
-                router.push("/auth/sign-in");
-            } else {
-                setLoading(false);
-            }
-        });
-        return () => unsubscribe();
-    }, [router]);
+        if (!loading && !user) {
+            router.push("/auth/sign-in");
+        }
+    }, [user, loading, router]);
+
 
     if (loading) {
         return (

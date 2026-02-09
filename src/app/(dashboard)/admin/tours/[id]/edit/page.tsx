@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { FirebaseService, Tour, Place } from "@/services/firebase-service";
+import { ApiService, Tour, Place } from "@/services/api-service";
 import TourForm from "@/components/Admin/tours/TourForm";
 import Link from "next/link";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 export default function EditTourPage() {
     const router = useRouter();
@@ -23,23 +21,17 @@ export default function EditTourPage() {
             if (!id) return;
             try {
                 // Fetch Tour
-                const docRef = doc(db, "tours", id);
-                const docSnap = await getDoc(docRef);
-
+                const tourFn = ApiService.getTour(id);
                 // Fetch Places
-                const placesFn = FirebaseService.getPlaces();
+                const placesFn = ApiService.getPlaces();
 
-                const [places] = await Promise.all([placesFn]);
+                const [tourData, places] = await Promise.all([tourFn, placesFn]);
+
                 setAvailablePlaces(places);
-
-                if (docSnap.exists()) {
-                    setTour({ id: docSnap.id, ...docSnap.data() } as Tour);
-                } else {
-                    console.error("No such tour!");
-                    router.push("/admin/tours");
-                }
+                setTour(tourData);
             } catch (error) {
                 console.error("Error loading data:", error);
+                router.push("/admin/tours");
             } finally {
                 setLoading(false);
             }
@@ -51,7 +43,7 @@ export default function EditTourPage() {
     const handleSubmit = async (data: Partial<Tour>) => {
         try {
             setIsSubmitting(true);
-            await FirebaseService.updateTour(id, data);
+            await ApiService.updateTour(id, data);
             router.push(`/admin/tours/${id}`);
             router.refresh();
         } catch (error) {

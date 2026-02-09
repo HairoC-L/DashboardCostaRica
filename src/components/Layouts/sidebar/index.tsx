@@ -9,12 +9,12 @@ import { NAV_DATA } from "./data";
 import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
-import { auth } from "@/lib/firebase";
-import { FirebaseService } from "@/services/firebase-service";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
+  const { user, loading } = useAuth();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [userRole, setUserRole] = useState<"admin" | "client" | null>(null);
 
@@ -23,16 +23,19 @@ export function Sidebar() {
   };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const role = await FirebaseService.getUserRole(user.uid);
-        setUserRole(role || "client"); // Default to client if no role
+    if (user) {
+      // user object from useAuth should ideally contain role
+      // For now, assuming user object might have role or we fetch it?
+      // Actually, api/auth/me returns the user with role from MongoDB.
+      if ((user as any).role) {
+        setUserRole((user as any).role);
       } else {
-        setUserRole(null);
+        setUserRole("client");
       }
-    });
-    return () => unsubscribe();
-  }, []);
+    } else {
+      setUserRole(null);
+    }
+  }, [user]);
 
   // Filter NAV_DATA based on role
   const filteredNavData = NAV_DATA.map(section => {
@@ -51,9 +54,9 @@ export function Sidebar() {
 
   useEffect(() => {
     // Keep collapsible open, when it's subpage is active
-    filteredNavData.some((section) => {
-      return section.items.some((item) => {
-        return item.items.some((subItem) => {
+    filteredNavData.some((section: any) => {
+      return section.items.some((item: any) => {
+        return item.items.some((subItem: any) => {
           if (subItem.url === pathname) {
             if (!expandedItems.includes(item.title)) {
               toggleExpanded(item.title);
@@ -120,13 +123,13 @@ export function Sidebar() {
 
                 <nav role="navigation" aria-label={section.label}>
                   <ul className="space-y-2">
-                    {section.items.map((item) => (
+                    {(section.items as any[]).map((item) => (
                       <li key={item.title}>
                         {item.items.length ? (
                           <div>
                             <MenuItem
                               isActive={item.items.some(
-                                ({ url }) => url === pathname,
+                                ({ url }: any) => url === pathname,
                               )}
                               onClick={() => toggleExpanded(item.title)}
                             >
@@ -152,7 +155,7 @@ export function Sidebar() {
                                 className="ml-9 mr-0 space-y-1.5 pb-[15px] pr-0 pt-2"
                                 role="menu"
                               >
-                                {item.items.map((subItem) => (
+                                {item.items.map((subItem: any) => (
                                   <li key={subItem.title} role="none">
                                     <MenuItem
                                       as="link"

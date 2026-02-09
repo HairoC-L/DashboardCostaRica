@@ -1,7 +1,7 @@
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import { FirebaseService, User } from "@/services/firebase-service";
+import { ApiService, User } from "@/services/api-service";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
@@ -12,7 +12,7 @@ export default function UsersAdmin() {
     const loadUsers = async () => {
         setLoading(true);
         try {
-            const data = await FirebaseService.getUsers();
+            const data = await ApiService.getUsers();
             setUsers(data);
         } catch (error) {
             console.error("Error loading users:", error);
@@ -28,7 +28,7 @@ export default function UsersAdmin() {
     const handleRoleChange = async (uid: string, newRole: "admin" | "client") => {
         if (confirm(`¿Cambiar rol a ${newRole === "admin" ? "Administrador" : "Cliente"}?`)) {
             try {
-                await FirebaseService.updateUserRole(uid, newRole);
+                await ApiService.updateUserRole(uid, newRole);
                 loadUsers();
             } catch (error) {
                 alert("Error al actualizar rol");
@@ -91,8 +91,8 @@ export default function UsersAdmin() {
                                 value={user.role || "client"}
                                 onChange={(e) => handleRoleChange(user.uid, e.target.value as "admin" | "client")}
                                 className={`inline-flex rounded-full bg-opacity-10 px-3 py-1 text-sm font-medium ${user.role === "admin"
-                                        ? "bg-success text-success"
-                                        : "bg-warning text-warning"
+                                    ? "bg-success text-success"
+                                    : "bg-warning text-warning"
                                     }`}
                             >
                                 <option value="client" className="text-dark">Cliente</option>

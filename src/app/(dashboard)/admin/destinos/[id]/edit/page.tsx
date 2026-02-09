@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { FirebaseService, Place } from "@/services/firebase-service";
+import { Place, ApiService } from "@/services/api-service";
 import DestinationForm from "@/components/Admin/destinos/DestinationForm";
 import Link from "next/link";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 export default function EditDestinationPage() {
     const router = useRouter();
@@ -21,17 +19,11 @@ export default function EditDestinationPage() {
         const fetchPlace = async () => {
             if (!id) return;
             try {
-                const docRef = doc(db, "places", id);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    setPlace({ id: docSnap.id, ...docSnap.data() } as Place);
-                } else {
-                    console.error("No such place!");
-                    router.push("/admin/destinos");
-                }
+                const data = await ApiService.getPlace(id);
+                setPlace(data);
             } catch (error) {
                 console.error("Error fetching place:", error);
+                router.push("/admin/destinos");
             } finally {
                 setLoading(false);
             }
@@ -43,7 +35,7 @@ export default function EditDestinationPage() {
     const handleSubmit = async (data: Partial<Place>) => {
         try {
             setIsSubmitting(true);
-            await FirebaseService.updatePlace(id, data);
+            await ApiService.updatePlace(id, data);
             router.push(`/admin/destinos/${id}`); // Back to details
             router.refresh();
         } catch (error) {

@@ -1,59 +1,45 @@
-import { db } from "@/lib/firebase";
-import {
-    collection,
-    getDocs,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    doc
-} from "firebase/firestore";
 import { Package, Tour } from "@/types";
+import { ToursService } from "./tours.service";
 
-const PACKAGES_COLLECTION = "packages";
-const TOURS_COLLECTION = "tours";
-
-const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 30000): Promise<T> => {
-    return Promise.race([
-        promise,
-        new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error("Operation timed out")), timeoutMs)
-        ),
-    ]);
-};
+const API_URL = "/api/packages";
 
 export const PackagesService = {
     getPackages: async (): Promise<Package[]> => {
-        return withTimeout((async () => {
-            const [packagesSnap, toursSnap] = await Promise.all([
-                getDocs(collection(db, PACKAGES_COLLECTION)),
-                getDocs(collection(db, TOURS_COLLECTION))
-            ]);
+        const [packagesRes, tours] = await Promise.all([
+            fetch(API_URL),
+            ToursService.getTours(),
+        ]);
 
-            const tours = toursSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Tour));
-            const packages = packagesSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Package));
+        if (!packagesRes.ok) throw new Error("Failed to fetch packages");
+        const packages: Package[] = await packagesRes.json();
 
-            return packages.map((pkg: any) => ({
-                ...pkg,
-                tours: tours.filter((t: any) => pkg.tourIds?.includes(t.id))
-            }));
-        })());
+        return packages.map((pkg) => ({
+            ...pkg,
+            tours: tours.filter((t) => pkg.tourIds?.includes(t.id)),
+        }));
     },
     addPackage: async (pkg: Omit<Package, "id">) => {
-        return withTimeout((async () => {
-            const docRef = await addDoc(collection(db, PACKAGES_COLLECTION), pkg);
-            return { id: docRef.id, ...pkg };
-        })());
+        const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(pkg),
+        });
+        if (!res.ok) throw new Error("Failed to create package");
+        return res.json();
     },
     updatePackage: async (id: string, updates: Partial<Package>) => {
-        return withTimeout((async () => {
-            const docRef = doc(db, PACKAGES_COLLECTION, id);
-            await updateDoc(docRef, updates);
-            return { id, ...updates };
-        })());
+        const res = await fetch(`${API_URL}/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates),
+        });
+        if (!res.ok) throw new Error("Failed to update package");
+        return res.json();
     },
     deletePackage: async (id: string) => {
-        return withTimeout((async () => {
-            await deleteDoc(doc(db, PACKAGES_COLLECTION, id));
-        })());
+        const res = await fetch(`${API_URL}/${id}`, {
+            method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Failed to delete package");
     },
 };

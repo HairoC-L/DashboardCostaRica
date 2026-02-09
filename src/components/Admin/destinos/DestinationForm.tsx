@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Place } from "@/services/firebase-service";
+import { Place } from "@/services/api-service";
 import LocationPickerModal from "@/components/Admin/LocationPickerModal";
 import GalleryUploader from "@/components/Admin/GalleryUploader";
 
@@ -123,7 +123,7 @@ export default function DestinationForm({ initialData, onSubmit, isSubmitting, o
                                 className="w-full rounded-lg border border-stroke bg-gray-50 px-4 py-3 text-dark outline-none dark:border-dark-3 dark:bg-dark-2 dark:text-white font-mono text-sm"
                                 required
                                 placeholder="ej: manuel-antonio"
-                                readOnly={!!initialData?.id} // Lock slug on edit generally safer
+                                readOnly={!!initialData?.id && !!initialData?.slug} // Only lock if ID AND slug exist
                             />
                             <p className="text-xs text-gray-500 mt-1">Usado para la carpeta: /public/destino/{formData.slug || "slug"}</p>
                         </div>

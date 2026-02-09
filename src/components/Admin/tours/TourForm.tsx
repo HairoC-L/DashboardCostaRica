@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Tour, Place } from "@/services/firebase-service";
+import { Tour, Place } from "@/services/api-service";
 import LocationPickerModal from "@/components/Admin/LocationPickerModal";
 import GalleryUploader from "@/components/Admin/GalleryUploader";
 import CalendarScheduler from "@/components/Admin/tours/CalendarScheduler";

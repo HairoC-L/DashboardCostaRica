@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Tour, Place, FirebaseService } from "@/services/firebase-service";
+import { Tour, Place, ApiService } from "@/services/api-service";
 import Link from "next/link";
 import Image from "next/image";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import EditableSection from "@/components/Admin/ui/EditableSection";
 import CalendarScheduler from "@/components/Admin/tours/CalendarScheduler";
 import GalleryUploader from "@/components/Admin/GalleryUploader";
@@ -34,27 +32,20 @@ export default function TourDetailsPage() {
         const fetchTour = async () => {
             if (!id) return;
             try {
-                const docRef = doc(db, "tours", id);
-                const docSnap = await getDoc(docRef);
+                const tourData = await ApiService.getTour(id);
+                // Ensure defaults
+                if (!tourData.gallery) tourData.gallery = [];
+                setTour(tourData);
+                setFormData(tourData);
 
-                if (docSnap.exists()) {
-                    const tourData = { id: docSnap.id, ...docSnap.data() } as Tour;
-                    // Ensure defaults
-                    if (!tourData.gallery) tourData.gallery = [];
-                    setTour(tourData);
-                    setFormData(tourData);
-
-                    if (tourData.placeIds && tourData.placeIds.length > 0) {
-                        const allPlaces = await FirebaseService.getPlaces();
-                        const relevant = allPlaces.filter(p => tourData.placeIds.includes(p.id));
-                        setRelatedPlaces(relevant);
-                    }
-                } else {
-                    console.error("No such tour!");
-                    router.push("/admin/tours");
+                if (tourData.placeIds && tourData.placeIds.length > 0) {
+                    const allPlaces = await ApiService.getPlaces();
+                    const relevant = allPlaces.filter(p => tourData.placeIds.includes(p.id));
+                    setRelatedPlaces(relevant);
                 }
             } catch (error) {
                 console.error("Error fetching tour:", error);
+                router.push("/admin/tours");
             } finally {
                 setLoading(false);
             }
@@ -65,7 +56,7 @@ export default function TourDetailsPage() {
 
     const handleDelete = async () => {
         if (confirm("¿Estás seguro de eliminar este tour?")) {
-            await FirebaseService.deleteTour(id);
+            await ApiService.deleteTour(id);
             router.push("/admin/tours");
         }
     };
@@ -80,7 +71,7 @@ export default function TourDetailsPage() {
     const handleSave = async (section: string) => {
         try {
             setIsSaving(true);
-            await FirebaseService.updateTour(id, formData);
+            await ApiService.updateTour(id, formData);
             setTour(prev => ({ ...prev, ...formData } as Tour));
             setEditMode(prev => ({ ...prev, [section]: false }));
         } catch (error) {

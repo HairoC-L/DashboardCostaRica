@@ -1,21 +1,23 @@
-import { storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-
-const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 30000): Promise<T> => {
-    return Promise.race([
-        promise,
-        new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error("Operation timed out")), timeoutMs)
-        ),
-    ]);
-};
-
 export const StorageService = {
     uploadImage: async (file: File, path: string): Promise<string> => {
-        return withTimeout((async () => {
-            const storageRef = ref(storage, path);
-            await uploadBytes(storageRef, file);
-            return await getDownloadURL(storageRef);
-        })());
+        // Legacy support: try to parse folder and slug from path
+        // path might be "destinos/slug/filename"
+        const parts = path.split("/");
+        const folder = parts[0] || "uploads";
+        const slug = parts[1] || "default";
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("slug", slug);
+        formData.append("folder", folder);
+
+        const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!res.ok) throw new Error("Failed to upload image");
+        const data = await res.json();
+        return data.url;
     },
 };

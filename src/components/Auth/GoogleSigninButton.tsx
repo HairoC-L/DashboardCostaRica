@@ -2,7 +2,7 @@
 
 import { GoogleIcon } from "@/assets/icons";
 import { auth } from "@/lib/firebase";
-import { FirebaseService } from "@/services/firebase-service";
+import { ApiService } from "@/services/api-service";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
@@ -16,7 +16,7 @@ export default function GoogleSigninButton({ text }: { text: string }) {
       const user = result.user;
 
       // Sync user to DB
-      await FirebaseService.syncUser({
+      await ApiService.syncUser({
         uid: user.uid,
         email: user.email || "",
         displayName: user.displayName || ""
